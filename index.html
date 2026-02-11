@@ -14,8 +14,11 @@
 
 <body>
 
-    <!-- Camera Feed -->
+    <!-- Camera Feed (Visible source) -->
     <video id="camera-feed" autoplay playsinline muted></video>
+
+    <!-- AI Overlay Canvas (Transparent, on top of video) -->
+    <canvas id="ai-overlay"></canvas>
 
     <!-- Static Image for Gallery Mode -->
     <img id="static-image" class="hidden" alt="Edited Image">
@@ -25,6 +28,12 @@
 
     <!-- Hidden Canvas for Capture -->
     <canvas id="capture-canvas" hidden></canvas>
+
+    <!-- Zoom Slider (Vertical, Right Side) -->
+    <div id="zoom-container" class="zoom-slider-container">
+        <input type="range" id="zoom-slider" min="1" max="3" step="0.1" value="1" orient="vertical">
+        <span id="zoom-value">1x</span>
+    </div>
 
     <!-- UI Overlay -->
     <div id="ui-layer">
@@ -85,13 +94,19 @@
         <!-- Timer/Flash Feedback Overlay -->
         <div id="flash-overlay"></div>
 
+        <!-- Loading Overlay for AI Model -->
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+            <p>Loading AI Model...</p>
+        </div>
+
         <!-- Bottom Controls -->
-        <!-- Added class 'compact' or structured to not hide image -->
         <div class="bottom-controls glass-panel">
 
             <!-- Manual Controls Toggle -->
             <div class="controls-header">
                 <button id="toggle-sliders-btn" class="text-btn active">Adjust</button>
+                <button id="toggle-beauty-btn" class="text-btn">Beauty</button>
                 <button id="toggle-filters-btn" class="text-btn">Filters</button>
             </div>
 
@@ -110,6 +125,17 @@
                     <input type="range" id="saturate" min="0" max="200" value="100">
                 </div>
                 <button id="reset-sliders" class="small-btn">Reset</button>
+            </div>
+
+            <!-- Beauty Section -->
+            <div id="beauty-panel" class="panel hidden">
+                <div class="slider-group">
+                    <label>Hair Tint</label> <!-- Hue Rotate -->
+                    <input type="range" id="hair-hue" min="0" max="360" value="0">
+                </div>
+                <p style="font-size: 0.7rem; color: #888; text-align: center; margin-top: 5px;">
+                    Adjust slider to change hair color.
+                </p>
             </div>
 
             <!-- Filters Section -->
@@ -131,7 +157,14 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- MediaPipe Loading Logic -->
+    <script type="module">
+        import { ImageSegmenter, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+        window.FilesetResolver = FilesetResolver;
+        window.ImageSegmenter = ImageSegmenter;
+        window.dispatchEvent(new Event('mediapipe-ready'));
+    </script>
+    <script src="app.js" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
