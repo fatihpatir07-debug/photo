@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumina</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+</head>
+
+<body>
+
+    <!-- Camera Feed -->
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <!-- Hidden Canvas for Capture -->
+    <canvas id="capture-canvas" hidden></canvas>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <!-- Info Button -->
+            <button id="info-btn" class="icon-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </button>
+
+            <!-- Camera Switch -->
+            <button id="switch-camera-btn" class="icon-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Info Modal -->
+        <div id="info-modal" class="modal hidden">
+            <div class="modal-content glass-panel">
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+                <h2>Lumina</h2>
+                <p>Premium Camera Experience</p>
+                <div class="credit-section">
+                    <p>Developed by</p>
+                    <h3>Fatih Patır</h3>
+                    <a href="https://fatihpatir.github.io/web/" target="_blank" class="credit-link">
+                        fatihpatir.github.io/web/
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer/Flash Feedback Overlay -->
+        <div id="flash-overlay"></div>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-controls glass-panel">
+
+            <!-- Manual Controls Toggle -->
+            <div class="controls-header">
+                <button id="toggle-sliders-btn" class="text-btn active">Adjust</button>
+                <button id="toggle-filters-btn" class="text-btn">Filters</button>
+            </div>
+
+            <!-- Sliders Section -->
+            <div id="sliders-panel" class="panel active">
+                <div class="slider-group">
+                    <label>Brightness</label>
+                    <input type="range" id="brightness" min="50" max="150" value="100">
+                </div>
+                <div class="slider-group">
+                    <label>Contrast</label>
+                    <input type="range" id="contrast" min="50" max="150" value="100">
+                </div>
+                <div class="slider-group">
+                    <label>Saturation</label>
+                    <input type="range" id="saturate" min="0" max="200" value="100">
+                </div>
+                <button id="reset-sliders" class="small-btn">Reset</button>
+            </div>
+
+            <!-- Filters Section -->
+            <div id="filters-panel" class="panel hidden">
+                <div class="filter-carousel">
+                    <button class="filter-chip active" data-filter="none">Normal</button>
+                    <button class="filter-chip" data-filter="auto-enhance">✨ Auto</button>
+                    <button class="filter-chip" data-filter="bw">B&W</button>
+                    <button class="filter-chip" data-filter="sepia">Sepia</button>
+                    <button class="filter-chip" data-filter="vintage">Vintage</button>
+                    <button class="filter-chip" data-filter="cyber">Cyber</button>
+                </div>
+            </div>
+
+            <!-- Shutter -->
+            <div class="shutter-zone">
+                <button id="shutter-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('SW Registered'))
+                .catch(console.error);
+        }
+    </script>
+</body>
+
+</html>
