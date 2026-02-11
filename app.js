@@ -9,32 +9,22 @@ const state = {
     mode: 'camera' // 'camera' or 'image'
 };
 
-// Shutter Sound (Short "Click" sound - Base64)
-const shutterSound = new Audio("data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
-// NOTE: The above is a dummy empty placeholder to prevent errors if base64 is invalid in prompt. 
-// I will use a real short beep/click sound here.
-// Let's use a generated simple beep via AudioContext instead for lighter weight and reliability.
+// Shutter Sound
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 function playShutterSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-
     osc.type = 'sine';
     osc.frequency.setValueAtTime(800, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-
     gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-
     osc.start(audioCtx.currentTime);
     osc.stop(audioCtx.currentTime + 0.1);
 }
-
 
 // Elements
 const video = document.getElementById('camera-feed');
@@ -62,21 +52,15 @@ const sliders = {
     saturate: document.getElementById('saturate')
 };
 
-// Initialization
+// Start Camera
 async function initCamera() {
     if (state.mode !== 'camera') return;
-
-    // Don't stop stream immediately if resizing or similar, 
-    // but here we want to ensure fresh stream if facing mode changed.
     if (state.stream) {
-        // optim: check if facing mode matches? 
         const track = state.stream.getVideoTracks()[0];
         const settings = track.getSettings();
-        if (settings.facingMode === state.facingMode) return; // Already good
-
+        if (settings.facingMode === state.facingMode) return;
         track.stop();
     }
-
     try {
         const constraints = {
             video: {
@@ -86,24 +70,19 @@ async function initCamera() {
             },
             audio: false
         };
-
         state.stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = state.stream;
-
-        // Handle mirroring logic
         if (state.facingMode === 'user') {
             video.classList.remove('rear-camera');
         } else {
             video.classList.add('rear-camera');
         }
-
     } catch (err) {
         console.error("Camera error:", err);
-        // Silent fail or UI indicator better than alert loop
     }
 }
 
-// Mode Switching
+// Switch Logic
 function setMode(mode) {
     state.mode = mode;
     if (mode === 'camera') {
@@ -119,9 +98,6 @@ function setMode(mode) {
         switchCameraBtn.classList.add('hidden');
         galleryBtn.classList.add('hidden');
         closeImageBtn.classList.remove('hidden');
-
-        // OPTIMIZATION: Keep camera running in background for fast switch back?
-        // Or stop to save battery? Saving battery is better for 'Editor' mode.
         if (state.stream) {
             state.stream.getTracks().forEach(track => track.stop());
             state.stream = null;
@@ -130,11 +106,7 @@ function setMode(mode) {
     updateVisuals();
 }
 
-// Gallery Handling
-galleryBtn.addEventListener('click', () => {
-    fileInput.click();
-});
-
+galleryBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -147,18 +119,11 @@ fileInput.addEventListener('change', (e) => {
     }
     fileInput.value = '';
 });
+closeImageBtn.addEventListener('click', () => setMode('camera'));
 
-closeImageBtn.addEventListener('click', () => {
-    setMode('camera');
-});
-
-// Filter Logic
+// Visuals (CSS Preview)
 function updateVisuals() {
-    // 1. Manual Filter
     const manualFilter = `brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturate}%)`;
-
-    // 2. Preset Filter
-    // CRITICAL: Ensure syntax is valid for both CSS and Canvas `filter`
     let presetFilter = '';
     switch (state.activeFilter) {
         case 'bw': presetFilter = 'grayscale(100%)'; break;
@@ -168,9 +133,7 @@ function updateVisuals() {
         case 'auto-enhance': presetFilter = 'contrast(115%) saturate(125%)'; break;
         default: presetFilter = '';
     }
-
     const combinedFilter = `${manualFilter} ${presetFilter}`.trim();
-
     if (state.mode === 'camera') {
         video.style.filter = combinedFilter;
         staticImage.style.filter = '';
@@ -178,7 +141,6 @@ function updateVisuals() {
         staticImage.style.filter = combinedFilter;
         video.style.filter = '';
     }
-
     return combinedFilter;
 }
 
@@ -187,70 +149,150 @@ function handleSliderChange(e) {
     state[id] = value;
     updateVisuals();
 }
-
 function resetSliders() {
     state.brightness = 100;
     state.contrast = 100;
     state.saturate = 100;
-
     sliders.brightness.value = 100;
     sliders.contrast.value = 100;
     sliders.saturate.value = 100;
-
     updateVisuals();
 }
-
-Object.values(sliders).forEach(slider => {
-    slider.addEventListener('input', handleSliderChange);
-});
-
+Object.values(sliders).forEach(slider => slider.addEventListener('input', handleSliderChange));
 document.getElementById('reset-sliders').addEventListener('click', resetSliders);
 
-// UI Toggles
+// Toggles
 toggleSlidersBtn.addEventListener('click', () => {
     sliderPanel.classList.add('active');
     filtersPanel.classList.remove('active');
     toggleSlidersBtn.classList.add('active');
     toggleFiltersBtn.classList.remove('active');
 });
-
 toggleFiltersBtn.addEventListener('click', () => {
     filtersPanel.classList.add('active');
     sliderPanel.classList.remove('active');
     toggleFiltersBtn.classList.add('active');
     toggleSlidersBtn.classList.remove('active');
 });
-
 document.querySelectorAll('.filter-chip').forEach(chip => {
     chip.addEventListener('click', (e) => {
         document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
         e.target.classList.add('active');
-
-        const filterName = e.target.getAttribute('data-filter');
-        state.activeFilter = filterName;
+        state.activeFilter = e.target.getAttribute('data-filter');
         updateVisuals();
     });
 });
-
 switchCameraBtn.addEventListener('click', () => {
     state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
     initCamera();
 });
 
-// Capture & Save logic
+// --- PIXEL MANIPULATION FOR ROBUST SAVING ---
+// Clamp value between 0 and 255
+function clamp(val) { return Math.max(0, Math.min(255, val)); }
+
+function applyFiltersToData(data, w, h) {
+    // 1. Sliders
+    const b = state.brightness / 100;
+    const c = state.contrast / 100;
+    const s = state.saturate / 100;
+
+    // Contrast Factor
+    const contrastFactor = (1.015 * (c * 255 + 22.5)) / (255 * (1.015 + 22.5)); // Approx logic or use standard
+    // Actually standard: input range is 50-150. Center is 100.
+    // Let's use simpler relative contrast:
+    // val = (val - 128) * c + 128
+
+    // Saturation weights
+    const Rw = 0.3086, Gw = 0.6094, Bw = 0.0820;
+
+    for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b_val = data[i + 2];
+
+        // Brightness
+        r *= b;
+        g *= b;
+        b_val *= b;
+
+        // Contrast
+        r = (r - 128) * c + 128;
+        g = (g - 128) * c + 128;
+        b_val = (b_val - 128) * c + 128;
+
+        // Saturation
+        // Luminance
+        const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b_val; // or correct weights
+        r = -gray * s + r * (1 + s) + gray * s; // Simple shift? 
+        // Better:
+        // final = gray + (color - gray) * saturation
+        r = gray + (r - gray) * s;
+        g = gray + (g - gray) * s;
+        b_val = gray + (b_val - gray) * s;
+
+        // Presets
+        if (state.activeFilter === 'bw') {
+            const avg = 0.3 * r + 0.59 * g + 0.11 * b_val;
+            r = avg; g = avg; b_val = avg;
+        } else if (state.activeFilter === 'sepia') {
+            const tr = 0.393 * r + 0.769 * g + 0.189 * b_val;
+            const tg = 0.349 * r + 0.686 * g + 0.168 * b_val;
+            const tb = 0.272 * r + 0.534 * g + 0.131 * b_val;
+            r = tr; g = tg; b_val = tb;
+        } else if (state.activeFilter === 'vintage') {
+            // Sepia 50%, Contrast 80%, Brightness 110%
+            // Approx:
+            const tr = 0.393 * r + 0.769 * g + 0.189 * b_val;
+            const tg = 0.349 * r + 0.686 * g + 0.168 * b_val;
+            const tb = 0.272 * r + 0.534 * g + 0.131 * b_val;
+            // Blend 50%
+            r = r * 0.5 + tr * 0.5;
+            g = g * 0.5 + tg * 0.5;
+            b_val = b_val * 0.5 + tb * 0.5;
+            // Contrast 0.8 / Brightness 1.1
+            r = ((r - 128) * 0.8 + 128) * 1.1;
+            g = ((g - 128) * 0.8 + 128) * 1.1;
+            b_val = ((b_val - 128) * 0.8 + 128) * 1.1;
+        } else if (state.activeFilter === 'cyber') {
+            // High sat, Cyan/Magenta tint intent?
+            // "hue-rotate" is extremely expensive manually.
+            // Let's approximate Cyber with High Contrast + Cool Tint
+            r = (r - 128) * 1.4 + 128; // Contrast
+            g = (g - 128) * 1.4 + 128;
+            b_val = (b_val - 128) * 1.6 + 128; // Blue push
+            // Saturation 2x
+            const gr = 0.3 * r + 0.59 * g + 0.11 * b_val;
+            r = gr + (r - gr) * 2.0;
+            g = gr + (g - gr) * 2.0;
+            b_val = gr + (b_val - gr) * 2.0;
+        } else if (state.activeFilter === 'auto-enhance') {
+            // Contrast 1.15, Sat 1.25
+            r = (r - 128) * 1.15 + 128;
+            g = (g - 128) * 1.15 + 128;
+            b_val = (b_val - 128) * 1.15 + 128;
+            const gr = 0.3 * r + 0.59 * g + 0.11 * b_val;
+            r = gr + (r - gr) * 1.25;
+            g = gr + (g - gr) * 1.25;
+            b_val = gr + (b_val - gr) * 1.25;
+        }
+
+        data[i] = clamp(r);
+        data[i + 1] = clamp(g);
+        data[i + 2] = clamp(b_val);
+    }
+}
+
+// Capture
 shutterBtn.addEventListener('mousedown', () => shutterBtn.style.transform = "scale(0.9)");
 shutterBtn.addEventListener('mouseup', () => shutterBtn.style.transform = "scale(1)");
 
 shutterBtn.addEventListener('click', async () => {
-    // Sound
     playShutterSound();
-
-    // Flash
-    flashOverlay.style.opacity = 1;
-    setTimeout(() => flashOverlay.style.opacity = 0, 100);
+    flashOverlay.style.opacity = 0.8;
+    setTimeout(() => flashOverlay.style.opacity = 0, 150);
 
     let width, height, source;
-
     if (state.mode === 'camera') {
         width = video.videoWidth;
         height = video.videoHeight;
@@ -263,7 +305,6 @@ shutterBtn.addEventListener('click', async () => {
 
     canvas.width = width;
     canvas.height = height;
-
     const ctx = canvas.getContext('2d');
 
     if (state.mode === 'camera' && state.facingMode === 'user') {
@@ -271,65 +312,35 @@ shutterBtn.addEventListener('click', async () => {
         ctx.scale(-1, 1);
     }
 
-    // Apply Filter to Canvas
-    // ctx.filter syntax must be exact w3c format
-    const visualFilter = updateVisuals();
-    ctx.filter = visualFilter;
-
+    // 1. Draw RAW image
     ctx.drawImage(source, 0, 0, width, height);
 
-    // Native Share / Save
-    canvas.toBlob(async (blob) => {
-        const file = new File([blob], `lumina_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    // 2. Extract Data
+    const imageData = ctx.getImageData(0, 0, width, height);
 
-        // Try Native Share API First (Mobile)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: 'Lumina Capture',
-                    text: 'Captured with Lumina'
-                });
-                console.log("Shared successfully");
-                return;
-            } catch (err) {
-                console.warn("Share failed or cancelled:", err);
-                // Fallback to download if share is cancelled? Maybe not, duplicate save.
-                // But if share *fails*, we might want to fallback.
-                if (err.name !== 'AbortError') {
-                    downloadFallback(blob);
-                }
-            }
-        } else {
-            // Desktop Fallback
-            downloadFallback(blob);
-        }
+    // 3. Process Pixels (Manual)
+    applyFiltersToData(imageData.data, width, height);
+
+    // 4. Put Data Back
+    ctx.putImageData(imageData, 0, 0);
+
+    // 5. Direct Download (Skip Share Sheet as requested)
+    canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `lumina_${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url); // Clean up
     }, 'image/jpeg', 0.95);
 });
 
-function downloadFallback(blob) {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `lumina_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
 // Info Modal
-infoBtn.addEventListener('click', () => {
-    infoModal.classList.remove('hidden');
-});
+infoBtn.addEventListener('click', () => infoModal.classList.remove('hidden'));
+closeModalBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+infoModal.addEventListener('click', (e) => { if (e.target === infoModal) infoModal.classList.add('hidden'); });
 
-closeModalBtn.addEventListener('click', () => {
-    infoModal.classList.add('hidden');
-});
-infoModal.addEventListener('click', (e) => {
-    if (e.target === infoModal) infoModal.classList.add('hidden');
-});
-
-// Start
 initCamera();
 updateVisuals();
