@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumina</title>
+    <title>HARE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
@@ -94,12 +94,6 @@
         <!-- Timer/Flash Feedback Overlay -->
         <div id="flash-overlay"></div>
 
-        <!-- Loading Overlay for AI Model -->
-        <div id="loading-overlay" class="hidden">
-            <div class="spinner"></div>
-            <p>Loading AI Model...</p>
-        </div>
-
         <!-- Bottom Controls -->
         <div class="bottom-controls glass-panel">
 
@@ -130,11 +124,15 @@
             <!-- Beauty Section -->
             <div id="beauty-panel" class="panel hidden">
                 <div class="slider-group">
-                    <label>Hair Tint</label> <!-- Hue Rotate -->
+                    <label>Glow</label>
+                    <input type="range" id="soft-glow" min="0" max="100" value="0">
+                </div>
+                <div class="slider-group">
+                    <label>Hair</label>
                     <input type="range" id="hair-hue" min="0" max="360" value="0">
                 </div>
                 <p style="font-size: 0.7rem; color: #888; text-align: center; margin-top: 5px;">
-                    Adjust slider to change hair color.
+                    Glow used for skin, Hair for color (AI).
                 </p>
             </div>
 

@@ -466,10 +466,12 @@ input[type=range]::-webkit-slider-runnable-track {
 #zoom-slider {
     writing-mode: bt-lr;
     -webkit-appearance: slider-vertical;
-    width: 8px;
+    width: 100%;
     height: 150px;
-    padding: 0 5px;
+    padding: 0;
     background: transparent;
+    cursor: pointer;
+    margin: 0;
 }
 
 #zoom-value {
